@@ -7,6 +7,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import mapped_column, relationship
 from sqlalchemy.sql import func
+from pgvector.sqlalchemy import Vector
 from src.database import Base
 
 
@@ -46,6 +47,7 @@ class Article(Base):
 
     source = relationship("Source", back_populates="articles")
     article_instruments = relationship("ArticleInstrument", back_populates="article")
+    embedding = relationship("Embedding", back_populates="article", uselist=False)
 
 
 class Instrument(Base):
@@ -112,3 +114,14 @@ class IngestionRun(Base):
     error_message = mapped_column(Text)
 
     source = relationship("Source", back_populates="ingestion_runs")
+
+
+class Embedding(Base):
+    __tablename__ = "embeddings"
+
+    id = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    article_id = mapped_column(UUID(as_uuid=True), ForeignKey("articles.id"), unique=True)
+    embedding = mapped_column(Vector(384))
+    created_at = mapped_column(DateTime, default=func.now())
+
+    article = relationship("Article", back_populates="embedding")
