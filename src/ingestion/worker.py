@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
-from src.models import Source, Article, IngestionRun
+from src.models import Source, Article, IngestionRun, Embedding
 from src.ingestion.rss_fetcher import fetch_feed
+from src.ingestion.embeddings import generate_embedding
 
 
 def run_ingestion(db: Session) -> None:
@@ -42,6 +43,15 @@ def _ingest_source(db: Session, source: Source) -> None:
                 published_at=article_data["published_at"],
             )
             db.add(article)
+            db.flush()
+
+            vector = generate_embedding(article.headline, article.body or "")
+            embedding = Embedding(
+                article_id=article.id,
+                embedding=vector,
+            )
+            db.add(embedding)
+
             articles_new += 1
 
         db.commit()
